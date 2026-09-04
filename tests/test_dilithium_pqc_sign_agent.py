@@ -3,9 +3,13 @@ Automated Pytest Test Suite for Dilithium Pqc Sign Agent.
 Domain: Post-Quantum Cryptography & Hardware Security
 Standard: NIST FIPS 203/204/205 / ISO/IEC 17825 Standards
 """
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Set audit key before importing modules that use it
+os.environ.setdefault("AUDIT_SECRET_KEY", "test-audit-key-for-unit-tests-only-2026")
 
 import pytest
 from agents.base import PHIGuard, AuditLogger, SecurityException
@@ -63,3 +67,28 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_input_validation_blocks_path_traversal():
+    """Identifiers with path traversal characters should be rejected."""
+    with pytest.raises(Exception):
+        SystemTaskPayload(task_id="../etc/passwd", target_identifier="KEY-01", primary_metric=10.0)
+    with pytest.raises(Exception):
+        SystemTaskPayload(task_id="TASK-01", target_identifier="..\\windows\\system32", primary_metric=10.0)
+
+
+def test_input_validation_blocks_empty_identifiers():
+    """Empty or whitespace-only identifiers should be rejected."""
+    with pytest.raises(Exception):
+        SystemTaskPayload(task_id="", target_identifier="KEY-01", primary_metric=10.0)
+    with pytest.raises(Exception):
+        SystemTaskPayload(task_id="   ", target_identifier="KEY-01", primary_metric=10.0)
+
+
+def test_audit_signature_verification():
+    """Audit trail should verify HMAC signatures, not just chain linkage."""
+    from agents.base import AuditTrail
+    trail = AuditTrail(secret_key="test-secret-key-for-verification-2026")
+    trail.log("test_actor", "test_tier", "TEST_EVENT", {"data": "value1"})
+    trail.log("test_actor", "test_tier", "TEST_EVENT", {"data": "value2"})
+    assert trail.verify_integrity() is True

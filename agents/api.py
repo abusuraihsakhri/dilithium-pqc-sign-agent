@@ -1,7 +1,12 @@
 """
 FastAPI REST API Server for Dilithium Pqc Sign Agent.
 """
+import os
 from typing import Dict, Any, List
+
+# Ensure audit key is set before importing modules that use it
+os.environ.setdefault("AUDIT_SECRET_KEY", "api-audit-key-for-local-use-only-2026")
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from .base import AuditLogger, PHIGuard

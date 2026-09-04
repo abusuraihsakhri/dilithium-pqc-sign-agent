@@ -1,6 +1,10 @@
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Set audit key before importing modules that use it
+os.environ.setdefault("AUDIT_SECRET_KEY", "test-audit-key-for-unit-tests-only-2026")
 
 import pytest
 from dilithium_sign.models import FrontierPayload, ExecutionStatus

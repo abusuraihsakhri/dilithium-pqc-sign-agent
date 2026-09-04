@@ -1,12 +1,16 @@
 """
 Distributed Component High-Throughput Traffic & Stress Testing Simulator for Dilithium Pqc Sign Agent.
 """
+import os
 import time
 import random
 import sys
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import PHIGuard, SecurityException, AuditLogger
+
+# Ensure audit key is set for simulation
+os.environ.setdefault("AUDIT_SECRET_KEY", "simulation-audit-key-for-testing-only-2026")
 
 def run_simulation(iterations: int = 100):
     print(f"Starting Distributed Component Simulation on Dilithium Pqc Sign Agent ({iterations} tasks)...")

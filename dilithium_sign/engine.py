@@ -3,7 +3,6 @@ Core Algorithmic Engine & Cryptographic / Biological Logic for ML-DSA / CRYSTALS
 Domain: Post-Quantum Cryptography & Zero-Knowledge
 Standard: NIST FIPS 204 (ML-DSA Standard)
 """
-import math
 from typing import Dict, Any, List, Optional
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
 
