@@ -1,27 +1,36 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dilithium-pqc-sign-engine"
-version = "2.0.0"
-description = "ML-DSA / CRYSTALS-Dilithium Post-Quantum Digital Signature Verification Engine"
+name = "dilithium-pqc-sign-agent"
+version = "2.1.0"
+description = "ML-DSA file signing and experimental operational audit workflows"
 readme = "README.md"
-authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
-license = { text = "MIT" }
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "Dr. Abu Suraih Sakhri"}]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Topic :: Security/Cryptography",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Topic :: Security :: Cryptography",
 ]
-requires-python = ">=3.9"
-dependencies = []
+dependencies = ["pydantic>=2.10,<3", "pqcrypto==1.0.0"]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+dev = ["pytest>=8,<10", "httpx>=0.27,<1"]
 
 [project.scripts]
+dilithium-pqc-sign-agent = "cli:main"
 dilithium-pqc-sign-engine = "dilithium_sign.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/dilithium-pqc-sign-engine"
-Repository = "https://github.com/abusuraihsakhri/dilithium-pqc-sign-engine.git"
+Homepage = "https://github.com/abusuraihsakhri/dilithium-pqc-sign-agent"
+Repository = "https://github.com/abusuraihsakhri/dilithium-pqc-sign-agent"
+
+[tool.setuptools]
+py-modules = ["cli", "dilithium_sign_app", "simulator", "enrichment"]
+
+[tool.setuptools.packages.find]
+include = ["agents*", "dilithium_sign*"]
