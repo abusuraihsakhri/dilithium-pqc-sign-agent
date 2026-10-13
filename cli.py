@@ -7,9 +7,6 @@ import json
 import os
 import sys
 
-# Ensure audit key is set before importing modules that use it
-os.environ.setdefault("AUDIT_SECRET_KEY", "cli-audit-key-for-local-use-only-2026")
-
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import AuditLogger
@@ -48,6 +45,9 @@ def main(argv=None):
     p_serve.add_argument("--port", type=int, default=8000)
 
     args = parser.parse_args(argv)
+    if args.command in ("audit", "batch", "verify-audit") and len(os.getenv("AUDIT_SECRET_KEY", "")) < 32:
+        print("Error: Set AUDIT_SECRET_KEY to a unique secret of at least 32 characters.", file=sys.stderr)
+        return 2
 
     if args.command == "audit":
         payload = SystemTaskPayload(
