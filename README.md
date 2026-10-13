@@ -1,175 +1,82 @@
 # Dilithium PQC Sign Agent
 
-> **Domain:** Post-Quantum Cryptography & Zero-Knowledge Architecture
-> **Reference Guidelines & Standards:** `NIST FIPS 203/204/205, NIST SP 800-90B & ISO/IEC Standards`
+Python tooling for **ML-DSA (FIPS 204) file signatures**, plus separate experimental threshold-based audit utilities.
 
-<div align="center">
+The ML-DSA operations use [pqcrypto 1.0.0](https://pypi.org/project/pqcrypto/), not the project's legacy numeric scoring engine. The cryptographic dependency has **not been independently certified or audited as part of this project**. Do not assume FIPS 140 validation, NIST conformance certification, or production key-management readiness.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## What works
 
-</div>
+- **ML-DSA-44, ML-DSA-65, ML-DSA-87:** generate keypairs, sign exact file bytes, and verify file signatures from a CLI.
+- **Operational audit CLI/API:** evaluate three clearly project-specific rules: primary metric > 25, secondary metric > 12 or a critical flag, and descriptors containing a configured alert keyword. These rules **do not verify cryptographic signatures or establish FIPS compliance**.
+- **Local browser demo:** open [web/index.html](web/index.html) directly. The standalone HTML/JavaScript demo applies the same operational rules without network requests, produces a JSON report, and **does not generate any cryptographic signatures or HMAC audit records**.
+- **HMAC-SHA256 audit chain:** the Python supervisor signs and verifies its **in-memory** operational audit entries; these entries are lost when the process restarts.
+- **FastAPI:** authenticated numeric audit, chat mock, metrics summary and audit-log inspection. Chat mode is a deterministic mock, not an LLM integration.
 
----
+## Install
 
-## 📖 What It Does
-
-**Dilithium PQC Sign Agent** is an advanced analytical and computational platform implementing NIST FIPS 204 ML-DSA (Dilithium2/3/5) digital signature verification & rejection sampling. It provides a multi-worker evaluation engine with cryptographic audit trails and PHI outbound protection.
-
----
-
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization with automated clinical/operational action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking and anomaly detection.
-- **Multi-Worker Evaluation**: Invariant QC, Safety Escalation, and Protocol Conformance workers.
-- **FastAPI REST API**: OpenAPI 3.1 endpoints for programmatic access.
-- **Prometheus Telemetry**: Operational metrics export.
-
----
-
-## 💻 Installation
+Requires Python 3.10+.
 
 ```bash
-# Clone the repository
 git clone https://github.com/abusuraihsakhri/dilithium-pqc-sign-agent.git
 cd dilithium-pqc-sign-agent
-
-# Install dependencies
-pip install fastapi uvicorn pydantic pytest
-
-# Set the audit secret key (required)
-export AUDIT_SECRET_KEY="your-secure-audit-key-min-32-chars"
+python -m pip install -e ".[api,dev]"
 ```
 
----
+### Cryptographic file signing (no audit secret required)
 
-## 💻 CLI Quickstart & Usage
-
-### 1. Guided Interactive Mode
 ```bash
-python cli.py audit
+python cli.py keygen --algorithm ml-dsa-44 --public-out public.key --secret-out private.secret.key
+python cli.py sign --algorithm ml-dsa-44 --secret-key private.secret.key --message-file sample.csv --signature-out sample.sig
+python cli.py verify --algorithm ml-dsa-44 --public-key public.key --message-file sample.csv --signature-file sample.sig
 ```
 
-### 2. Direct Parameterized Evaluation
+The signer creates new binary files without overwriting existing files. On POSIX systems files are created with mode `0600`; restrict access to the private key and store it securely. Verification prints `VALID` or `INVALID` and exits with status 0 or 1. Message bytes and any UTF-8 `--context` string (maximum 255 bytes) must match exactly.
+
+**Do not commit private keys, send them to an API, or expose them in a browser.** The repository does not implement hardware-backed key storage, key rotation, or certificate issuance.
+
+### Operational audit CLI
+
+Set a random unique secret (minimum 32 characters); this authenticates audit-chain entries, not ML-DSA signatures.
+
 ```bash
+export AUDIT_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
-```
-
-### 3. Batch Processing
-```bash
 python cli.py batch -i sample.csv -o results.csv
-```
-
-### 4. Verify Audit Trail
-```bash
 python cli.py verify-audit
 ```
 
-### 5. Start API Server
+The `verify-audit` command only checks the current Python process's in-memory chain; a new invocation has no access to a previous process's entries. See `tests/` for tamper-detection tests.
+
+### API
+
 ```bash
+export API_BEARER_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-### Parameter Reference
-- `--task-id`: Unique task identifier (alphanumeric, underscores, hyphens only)
-- `--target`: Target identifier (alphanumeric, underscores, hyphens only)
-- `--primary`: Primary metric value (float)
-- `--secondary`: Secondary metric value (float)
-- `--critical`: Flag for critical priority
-- `--status`: Status descriptor (e.g., NOMINAL, DISCORDANT)
+`GET /health` is public. All other API endpoints require `Authorization: Bearer <API_BEARER_TOKEN>`; when the token is absent, requests fail closed. API documentation is available at `/docs` locally. Keep server access limited to trusted networks, use HTTPS behind a reverse proxy when deployed, and do not accept private keys through the audit interface.
 
-### Input Data Schema
+Alternatively, Docker Compose requires both environment variables. It binds port 8000 to localhost by default.
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Unique task identifier | Required |
-| `target_identifier` | Target entity identifier | Required |
-| `primary_metric` | Primary measurement value | Required |
-| `secondary_metric` | Secondary measurement value | Optional |
-| `is_critical_flag` | Critical priority flag | Optional |
-| `status_descriptor` | Status code descriptor | Optional |
+## Privacy and limitations
 
----
+- The offline browser demo does not transmit input data and uses no external fonts or services. It is an **illustrative audit-rule demonstrator**, not a security control.
+- The Python API records per-process operational data in memory. Its regex-based identifier checks cannot guarantee detection or redaction of all personal health information.
+- There is no production authentication/authorization layer beyond the configured bearer token, no persistent audit storage, and no verified certificate or interoperability test-vector suite.
+- GitHub Pages can only host the static browser demo, **not** the Python FastAPI service or native `pqcrypto` implementation. A live Pages deployment has not been verified.
 
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition. Both chain linkage AND HMAC signatures are verified.
-* **Secure Key Management:** Audit secret key must be provided via `AUDIT_SECRET_KEY` environment variable (minimum 32 characters). No hardcoded defaults.
-* **Input Validation:** All identifiers are validated to prevent path traversal and injection attacks.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+## Development and tests
 
 ```bash
-# Set test audit key
-export AUDIT_SECRET_KEY="test-audit-key-for-unit-tests-only-2026"
-
-# Run tests
-pytest -v
+python -m pip install -e ".[api,dev]"
+python -m pytest -q
+python -m compileall -q agents dilithium_sign
+node --check web/app.js
+node --test tests/web.test.cjs
 ```
 
-Execute high-throughput batch simulation benchmarks:
+CI tests Python 3.10, 3.11, and 3.12 plus the standalone browser rules. Browser demo targets current desktop and mobile browsers supporting modern JavaScript and local downloads.
 
-```bash
-python simulator.py 1000
-```
+## Standards and license
 
----
-
-## 🐳 Container Deployment
-
-```bash
-docker build -t dilithium-pqc-sign-agent .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY="your-secure-audit-key" dilithium-pqc-sign-agent
-```
-
----
-
-## 📁 Project Structure
-
-```
-dilithium-pqc-sign-agent/
-├── agents/                  # Core agent modules
-│   ├── api.py              # FastAPI REST server
-│   ├── base.py             # Security, PHI guard, audit trail
-│   ├── learning.py         # Bayesian calibration engine
-│   ├── llm_factory.py      # LLM provider factory
-│   ├── metrics.py          # Prometheus metrics
-│   ├── models.py           # Pydantic data models
-│   ├── streamer.py         # WebSocket telemetry
-│   ├── supervisor.py       # Supervisor orchestrator
-│   └── workers.py          # Specialized worker agents
-├── dilithium_sign/         # Dilithium signature modules
-│   ├── agents.py           # PQC signature coordinator
-│   ├── cli.py              # CLI for dilithium module
-│   ├── engine.py           # Core algorithmic engine
-│   ├── models.py           # Data models
-│   └── server.py           # FastAPI server factory
-├── tests/                  # Test suite
-├── cli.py                  # Main CLI entry point
-├── dilithium_sign_app.py   # Alternative entry point
-├── enrichment.py           # Enrichment feature suite
-├── simulator.py            # High-throughput simulator
-├── Dockerfile              # Container definition
-├── docker-compose.yml      # Docker Compose config
-└── pyproject.toml          # Project metadata
-```
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+ML-DSA is defined by [NIST FIPS 204](https://csrc.nist.gov/pubs/fips/204/final). The secondary threshold-audit modules are **not FIPS 204 tests**. This project is distributed under the [MIT License](LICENSE).
