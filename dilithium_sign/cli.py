@@ -7,9 +7,6 @@ import json
 import os
 import sys
 
-# Ensure audit key is set before importing modules that use it
-os.environ.setdefault("AUDIT_SECRET_KEY", "cli-audit-key-for-local-use-only-2026")
-
 from .models import FrontierPayload
 from .agents import PQCSignatureCoordinator
 
