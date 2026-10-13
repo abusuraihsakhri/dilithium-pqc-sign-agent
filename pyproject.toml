@@ -12,7 +12,6 @@ license = "MIT"
 authors = [{name = "Dr. Abu Suraih Sakhri"}]
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
   "Topic :: Security :: Cryptography",
 ]
 dependencies = ["pydantic>=2.10,<3", "pqcrypto==1.0.0"]
