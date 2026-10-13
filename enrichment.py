@@ -1,6 +1,7 @@
 """
-Enrichment Feature Implementation for dilithium-pqc-sign-agent.
-Generated based on domain-specific requirements in specifications.
+Synthetic enrichment scorecards for exploratory testing only.
+These generic threshold evaluators do not implement the cryptographic,
+side-channel, TLS, interoperability or formal-proof algorithms named below.
 """
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
