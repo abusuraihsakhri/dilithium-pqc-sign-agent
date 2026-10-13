@@ -54,7 +54,7 @@ def main(argv=None):
         dossier = coordinator.process(payload)
         print("=" * 80)
         print(f"  ML-DSA / CRYSTALS-DILITHIUM POST-QUANTUM DIGITAL SIGNATURE VERIFICATION AGENT")
-        print(f"  Domain: Post-Quantum Cryptography & Zero-Knowledge | Standard: NIST FIPS 204 (ML-DSA Standard)")
+        print(f"  Domain: Post-Quantum Cryptography & Zero-Knowledge | Rules: project-specific demonstration thresholds (not FIPS 204 tests)")
         print(f"  Task: {dossier['task_id']} | Status: [{dossier['overall_status']}] | Total Alerts: {dossier['total_alerts']}")
         print("=" * 80)
         for a in dossier["alerts"]:

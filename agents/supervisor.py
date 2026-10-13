@@ -80,5 +80,5 @@ class SystemSupervisor:
 
     def query_supervisory_chat(self, query: str) -> str:
         PHIGuard.assert_no_phi(query)
-        prompt = f"Supervisor inquiry for Dilithium Pqc Sign Agent under NIST FIPS 203/204/205 / ISO/IEC 17825 Standards: {query}"
+        prompt = f"Supervisor inquiry for Dilithium Pqc Sign Agent under project-specific operational audit rules: {query}"
         return self.llm.invoke(prompt)

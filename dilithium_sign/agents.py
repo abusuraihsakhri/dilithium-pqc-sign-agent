@@ -93,7 +93,7 @@ class PQCSignatureCoordinator:
             "critical_count": crit_count,
             "warning_count": warn_count,
             "alerts": [a.to_dict() for a in all_alerts],
-            "standard_specification": "NIST FIPS 204 (ML-DSA Standard)",
+            "standard_specification": "Project-specific audit heuristic (not ML-DSA conformance)",
             "consensus_summary": f"Consensus evaluation completed across 3 sub-agents with status [{status.value}].",
         }
 
