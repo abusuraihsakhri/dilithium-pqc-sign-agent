@@ -15,7 +15,7 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Dilithium Pqc Sign Agent API",
-    description="Enterprise Distributed Component Platform (Post-Quantum Cryptography & Hardware Security)",
+    description="Authenticated operational threshold audit API; not an ML-DSA signing endpoint",
     version="3.0.0-ENTERPRISE",
 )
 
@@ -35,15 +35,17 @@ def require_auth(authorization: str | None = Header(default=None)):
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "dilithium-pqc-sign-agent", "domain": "Post-Quantum Cryptography & Hardware Security", "standard": "NIST FIPS 203/204/205 / ISO/IEC 17825 Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY" if len(os.getenv("AUDIT_SECRET_KEY", "")) >= 32 and len(os.getenv("API_BEARER_TOKEN", "")) >= 32 else "NOT_CONFIGURED", "service": "dilithium-pqc-sign-agent", "component": "numeric heuristic audit API", "version": "3.0.0"}
 
 
 @app.get("/metrics", dependencies=[Depends(require_auth)])
 def metrics():
+    dossiers = list(supervisor.dossier_registry.values())
     return {
-        "dossiers_processed_total": len(supervisor.dossier_registry),
+        "dossiers_processed_total": len(dossiers),
         "audit_blocks_total": len(AuditLogger.get_trail()),
-        "system_status": "NOMINAL_OPTIMAL"
+        "last_urgency": dossiers[-1].overall_urgency.value if dossiers else "NO_TASKS",
+        "audit_integrity_valid": AuditLogger.verify_integrity(),
     }
 
 
