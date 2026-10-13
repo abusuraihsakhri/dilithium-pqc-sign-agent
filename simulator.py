@@ -9,10 +9,12 @@ from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import PHIGuard, SecurityException, AuditLogger
 
-# Ensure audit key is set for simulation
-os.environ.setdefault("AUDIT_SECRET_KEY", "simulation-audit-key-for-testing-only-2026")
 
 def run_simulation(iterations: int = 100):
+    if len(os.getenv("AUDIT_SECRET_KEY", "")) < 32:
+        raise RuntimeError("Set AUDIT_SECRET_KEY to a unique secret of at least 32 characters")
+    if iterations <= 0:
+        raise ValueError("iterations must be positive")
     print(f"Starting Distributed Component Simulation on Dilithium Pqc Sign Agent ({iterations} tasks)...")
     supervisor = SystemSupervisor(model_provider="mock")
     start_time = time.time()
