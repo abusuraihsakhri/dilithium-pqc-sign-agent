@@ -29,6 +29,13 @@ jobs:
           python -m pip install -e ".[api,dev]"
       - name: Compile all Python modules
         run: python -m compileall -q .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check browser script and rules tests
+        run: |
+          node --check web/app.js
+          node --test tests/web.test.cjs
       - name: Run tests
         run: python -m pytest -q
       - name: Verify audit key and chain behavior
