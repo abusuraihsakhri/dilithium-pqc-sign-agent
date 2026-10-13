@@ -1,40 +1,36 @@
-name: Dilithium Pqc Sign Engine CI/CD & Security Verification
+name: Python tests and security checks
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
 
 jobs:
-  test-and-audit:
+  test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
 
+    env:
+      AUDIT_SECRET_KEY: ci-only-audit-key-for-unit-tests-not-production
+      API_BEARER_TOKEN: ci-only-api-bearer-token-for-unit-tests
+
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install fastapi uvicorn pydantic pytest
-
-    - name: Run Pytest Suite
-      run: |
-        pytest -v
-
-    - name: Security SAST & Zero-PHI Audit
-      run: |
-        python -c "
-        from agents.base import PHIGuard, AuditLogger
-        import pytest
-        assert AuditLogger.verify_integrity() is True
-        print('Security & Zero-PHI Audit Passed!')
-        "
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install project and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[api,dev]"
+      - name: Compile all Python modules
+        run: python -m compileall -q .
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Verify audit key and chain behavior
+        run: |
+          python -c "from agents.base import AuditLogger; assert AuditLogger.verify_integrity(); print('Audit chain verified')"
