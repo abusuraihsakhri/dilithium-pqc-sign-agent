@@ -105,6 +105,6 @@ class PQCSignatureCoordinator:
         if "status" in q or "ledger" in q:
             return f"ML-DSA / CRYSTALS-Dilithium Post-Quantum Digital Signature Verification Agent currently managing {len(self.execution_ledger)} execution tasks in air-gapped memory."
         elif "standard" in q or "spec" in q:
-            return "Active runtime operating strictly according to NIST FIPS 204 (ML-DSA Standard) specifications."
+            return "NIST FIPS 204 (ML-DSA Standard) describes digital signatures; this legacy threshold audit does not test specification conformance."
         else:
             return f"ML-DSA / CRYSTALS-Dilithium Post-Quantum Digital Signature Verification Agent executive coordinator online. Zero-telemetry on-premises surveillance active."
