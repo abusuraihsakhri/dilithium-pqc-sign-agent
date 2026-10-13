@@ -3,6 +3,7 @@ Supervisor Orchestrator & Operations Intelligence for Dilithium Pqc Sign Agent.
 Domain: Post-Quantum Cryptography & Hardware Security
 """
 import uuid
+import json
 from typing import Dict, Any, List, Optional
 from .base import AuditLogger, ActionExecutor, PHIGuard
 from .models import SystemTaskPayload, AgentAlert, ConsensusDossier, UrgencyLevel, SystemIntegrityStatus
@@ -25,6 +26,10 @@ class SystemSupervisor:
         PHIGuard.assert_no_phi(payload.task_id)
         PHIGuard.assert_no_phi(payload.target_identifier)
         PHIGuard.assert_no_phi(payload.status_descriptor)
+        attributes_json = json.dumps(payload.attributes, ensure_ascii=False)
+        if len(attributes_json.encode("utf-8")) > 16384:
+            raise ValueError("attributes must not exceed 16 KiB")
+        PHIGuard.assert_no_phi(attributes_json)
 
         # Multi-worker evaluations
         all_alerts: List[AgentAlert] = []
