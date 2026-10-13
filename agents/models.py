@@ -25,8 +25,8 @@ class SystemIntegrityStatus(str, Enum):
 class SystemTaskPayload(BaseModel):
     task_id: str = Field(..., description="Unique task / case identifier", min_length=1, max_length=128)
     target_identifier: str = Field(..., description="Entity, patient key, or genomic/cryptographic target", min_length=1, max_length=128)
-    primary_metric: float = Field(..., description="Primary domain measurement or score")
-    secondary_metric: float = Field(default=0.0, description="Secondary kinetic or confidence score")
+    primary_metric: float = Field(..., allow_inf_nan=False, description="Primary domain measurement or score")
+    secondary_metric: float = Field(default=0.0, allow_inf_nan=False, description="Secondary kinetic or confidence score")
     status_descriptor: str = Field(default="NOMINAL", description="Status code or phenotype descriptor", max_length=64)
     is_critical_flag: bool = Field(default=False, description="Emergency escalation or high priority trigger")
     attributes: Dict[str, Any] = Field(default_factory=dict, description="Metadata key-value pairs")

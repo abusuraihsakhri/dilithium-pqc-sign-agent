@@ -1,17 +1,9 @@
-version: '3.8'
-
 services:
-  dilithium-pqc-sign-engine:
+  dilithium-pqc-sign-agent:
     build: .
-    container_name: dilithium-pqc-sign-engine
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      - AUDIT_SECRET_KEY=dilithium-pqc-sign-engine-prod-audit-key-2026
-      - MODEL_PROVIDER=mock
+      AUDIT_SECRET_KEY: "${AUDIT_SECRET_KEY:?Set a unique audit secret (at least 32 characters)}"
+      API_BEARER_TOKEN: "${API_BEARER_TOKEN:?Set a unique API token (at least 32 characters)}"
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3

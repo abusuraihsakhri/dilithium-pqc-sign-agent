@@ -2,6 +2,8 @@
 FastAPI REST API Server for ML-DSA / CRYSTALS-Dilithium Post-Quantum Digital Signature Verification Agent.
 """
 from typing import Dict, Any
+import hmac
+import os
 from .models import FrontierPayload
 from .agents import PQCSignatureCoordinator
 
@@ -10,12 +12,12 @@ coordinator = PQCSignatureCoordinator()
 
 def create_app():
     try:
-        from fastapi import FastAPI
-        from pydantic import BaseModel
+        from fastapi import FastAPI, HTTPException, Header, Depends
+        from pydantic import BaseModel, Field
 
         app = FastAPI(
             title="ML-DSA / CRYSTALS-Dilithium Post-Quantum Digital Signature Verification Agent",
-            description="Implements NIST FIPS 204 ML-DSA (Dilithium2/3/5) module learning with errors (M-LWE) digital signature generation, rejection sampling, and verification.",
+            description="Legacy numeric rule-based audit demonstration. Does not generate or verify ML-DSA signatures.",
             version="2.0.0-FRONTIER",
         )
 
@@ -26,16 +28,23 @@ def create_app():
             secondary_metric: float = 14.2
             status_descriptor: str = "DISCORDANT_ANOMALY"
             is_critical_flag: bool = True
-            attributes: Dict[str, Any] = {}
+            attributes: Dict[str, Any] = Field(default_factory=dict)
 
         class ChatRequest(BaseModel):
             query: str
+
+        def require_auth(authorization: str | None = Header(default=None)):
+            token = os.getenv("API_BEARER_TOKEN", "")
+            if len(token) < 32:
+                raise HTTPException(status_code=503, detail="API authentication is not configured")
+            if not authorization or not hmac.compare_digest(authorization, f"Bearer {token}"):
+                raise HTTPException(status_code=401, detail="Invalid bearer token", headers={"WWW-Authenticate": "Bearer"})
 
         @app.get("/health")
         def health():
             return {"status": "HEALTHY", "system": "dilithium-pqc-sign-agent", "domain": "Post-Quantum Cryptography & Zero-Knowledge", "version": "2.0.0-FRONTIER"}
 
-        @app.post("/api/audit")
+        @app.post("/api/audit", dependencies=[Depends(require_auth)])
         def api_audit(req: TaskRequest):
             payload = FrontierPayload(
                 task_id=req.task_id,
@@ -48,7 +57,7 @@ def create_app():
             )
             return coordinator.process(payload)
 
-        @app.post("/api/chat")
+        @app.post("/api/chat", dependencies=[Depends(require_auth)])
         def api_chat(req: ChatRequest):
             return {"response": coordinator.query_supervisory_chat(req.query)}
 

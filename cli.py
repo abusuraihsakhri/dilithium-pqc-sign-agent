@@ -7,9 +7,6 @@ import json
 import os
 import sys
 
-# Ensure audit key is set before importing modules that use it
-os.environ.setdefault("AUDIT_SECRET_KEY", "cli-audit-key-for-local-use-only-2026")
-
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import AuditLogger
@@ -47,7 +44,84 @@ def main(argv=None):
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8000)
 
+    # ML-DSA (FIPS 204) operations; keys and signatures are binary files.
+    p_keygen = subparsers.add_parser("keygen", help="Generate a real ML-DSA keypair")
+    p_keygen.add_argument("--algorithm", choices=("ml-dsa-44", "ml-dsa-65", "ml-dsa-87"), default="ml-dsa-44")
+    p_keygen.add_argument("--public-out", required=True)
+    p_keygen.add_argument("--secret-out", required=True)
+
+    p_sign = subparsers.add_parser("sign", help="Sign file bytes using a private ML-DSA key")
+    p_sign.add_argument("--algorithm", choices=("ml-dsa-44", "ml-dsa-65", "ml-dsa-87"), default="ml-dsa-44")
+    p_sign.add_argument("--secret-key", required=True)
+    p_sign.add_argument("--message-file", required=True)
+    p_sign.add_argument("--signature-out", required=True)
+    p_sign.add_argument("--context", default="")
+
+    p_verify = subparsers.add_parser("verify", help="Verify an ML-DSA signature")
+    p_verify.add_argument("--algorithm", choices=("ml-dsa-44", "ml-dsa-65", "ml-dsa-87"), default="ml-dsa-44")
+    p_verify.add_argument("--public-key", required=True)
+    p_verify.add_argument("--message-file", required=True)
+    p_verify.add_argument("--signature-file", required=True)
+    p_verify.add_argument("--context", default="")
+
     args = parser.parse_args(argv)
+    if args.command in ("audit", "batch", "verify-audit") and len(os.getenv("AUDIT_SECRET_KEY", "")) < 32:
+        print("Error: Set AUDIT_SECRET_KEY to a unique secret of at least 32 characters.", file=sys.stderr)
+        return 2
+
+    if args.command in ("keygen", "sign", "verify"):
+        from pathlib import Path
+        try:
+            from dilithium_sign.crypto import generate_keypair, sign_message, verify_message
+
+            def read_limited(path):
+                with open(path, "rb") as file:
+                    data = file.read(64 * 1024 * 1024 + 1)
+                if len(data) > 64 * 1024 * 1024:
+                    raise ValueError("Input file exceeds the 64 MiB limit")
+                return data
+
+            def write_new(path, data):
+                # O_EXCL prevents overwriting keys or signatures. Files are private by default.
+                flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                if hasattr(os, "O_NOFOLLOW"):
+                    flags |= os.O_NOFOLLOW
+                fd = os.open(path, flags, 0o600)
+                with os.fdopen(fd, "wb") as file:
+                    file.write(data)
+
+            if args.command == "keygen":
+                if os.path.abspath(args.public_out) == os.path.abspath(args.secret_out):
+                    raise ValueError("Public and private key paths must differ")
+                if os.path.exists(args.public_out) or os.path.exists(args.secret_out):
+                    raise FileExistsError("Refusing to overwrite an existing key")
+                public, secret = generate_keypair(args.algorithm)
+                write_new(args.secret_out, secret)
+                try:
+                    write_new(args.public_out, public)
+                except Exception:
+                    os.unlink(args.secret_out)
+                    raise
+                print(f"Generated {args.algorithm} keys: {args.public_out}, {args.secret_out}")
+            elif args.command == "sign":
+                msg = read_limited(args.message_file)
+                secret = read_limited(args.secret_key)
+                sig = sign_message(secret, msg, args.algorithm, args.context.encode("utf-8"))
+                write_new(args.signature_out, sig)
+                print(f"Wrote {args.algorithm} signature to {args.signature_out}")
+            else:
+                valid = verify_message(
+                    read_limited(args.public_key),
+                    read_limited(args.message_file),
+                    read_limited(args.signature_file),
+                    args.algorithm, args.context.encode("utf-8"),
+                )
+                print("VALID" if valid else "INVALID")
+                return 0 if valid else 1
+        except (ValueError, TypeError, RuntimeError, OSError) as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 2
+        return 0
 
     if args.command == "audit":
         payload = SystemTaskPayload(
